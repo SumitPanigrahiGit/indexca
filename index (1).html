@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRONVEIN — Gen-7 Augmentation</title>
+<meta name="description" content="IRONVEIN grafts machine precision onto human instinct. Explore Gen-7 cyborg augmentation.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* ---------- Design tokens ---------- */
+  :root{
+    --void:      #0b0e14;
+    --panel:     #12161f;
+    --panel-2:   #171d29;
+    --line:      #232a38;
+    --text:      #e7ecf1;
+    --muted:     #7c8798;
+    --human:     #ff3e6c;   /* blood / organic accent  */
+    --human-dim: #7a2036;
+    --machine:   #00e5cc;   /* synthetic / cyan accent */
+    --machine-dim: #0a4f49;
+    --copper:    #e8a857;   /* wiring / warm accent    */
+
+    --display: 'Chakra Petch', sans-serif;
+    --body:    'Space Grotesk', sans-serif;
+    --mono:    'JetBrains Mono', monospace;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background:var(--void);
+    color:var(--text);
+    font-family:var(--body);
+    line-height:1.6;
+    overflow-x:hidden;
+    cursor:none;
+  }
+
+  @media (max-width: 860px), (hover:none){
+    body{ cursor:auto; }
+  }
+
+  a{ color:inherit; text-decoration:none; }
+  img{ max-width:100%; display:block; }
+
+  ::selection{ background:var(--human); color:var(--void); }
+
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:0 32px;
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12.5px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--machine);
+  }
+
+  h1,h2,h3{ font-family:var(--display); font-weight:600; letter-spacing:.01em; }
+
+  /* ---------- Custom cursor: targeting reticle ---------- */
+  #reticle{
+    position:fixed;
+    top:0; left:0;
+    width:34px; height:34px;
+    border:1px solid var(--machine);
+    border-radius:50%;
+    pointer-events:none;
+    z-index:9999;
+    transform:translate(-50%,-50%);
+    transition:width .18s ease, height .18s ease, border-color .18s ease, opacity .3s ease;
+    mix-blend-mode:screen;
+  }
+  #reticle::before, #reticle::after{
+    content:"";
+    position:absolute;
+    background:var(--machine);
+  }
+  #reticle::before{ top:50%; left:-9px; width:6px; height:1px; transform:translateY(-50%); }
+  #reticle::after{ top:-9px; left:50%; width:1px; height:6px; transform:translateX(-50%); }
+  #reticle.active{
+    width:54px; height:54px;
+    border-color:var(--human);
+  }
+  #reticle.active::before, #reticle.active::after{ background:var(--human); }
+  @media (max-width: 860px), (hover:none){ #reticle{ display:none; } }
+
+  /* ---------- Nav ---------- */
+  header{
+    position:fixed;
+    top:0; left:0; right:0;
+    z-index:500;
+    backdrop-filter:blur(10px);
+    background:rgba(11,14,20,.75);
+    border-bottom:1px solid var(--line);
+  }
+  nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 32px;
+    max-width:1180px;
+    margin:0 auto;
+  }
+  .logo{
+    font-family:var(--display);
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:.06em;
+  }
+  .logo span{ color:var(--human); }
+  .nav-links{
+    display:flex;
+    gap:36px;
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+  .nav-links a{ color:var(--muted); position:relative; transition:color .2s; }
+  .nav-links a:hover{ color:var(--text); }
+  .nav-links a::after{
+    content:"";
+    position:absolute; left:0; bottom:-6px;
+    width:0; height:1px; background:var(--machine);
+    transition:width .25s ease;
+  }
+  .nav-links a:hover::after{ width:100%; }
+  #nav-toggle{ display:none; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    padding:180px 0 120px;
+    overflow:hidden;
+  }
+  .hero::before{
+    /* faint circuit grid backdrop */
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 70% 60% at 50% 20%, black 30%, transparent 75%);
+    opacity:.5;
+  }
+  .hero-grid{
+    position:relative;
+    display:grid;
+    grid-template-columns:1.15fr .85fr;
+    gap:56px;
+    align-items:center;
+  }
+  .hero h1{
+    font-size:clamp(40px, 6vw, 74px);
+    line-height:1.03;
+    margin:18px 0 22px;
+  }
+  .hero h1 .glitch{
+    display:inline-block;
+    color:var(--human);
+    position:relative;
+  }
+  .hero p.lede{
+    color:var(--muted);
+    font-size:17px;
+    max-width:46ch;
+    margin-bottom:36px;
+  }
+  .btn-row{ display:flex; gap:16px; flex-wrap:wrap; }
+  .btn{
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:15px 26px;
+    border-radius:2px;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .btn-primary{
+    background:var(--human);
+    color:#1a0409;
+    font-weight:600;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 30px -8px rgba(255,62,108,.55); }
+  .btn-ghost{
+    border:1px solid var(--line);
+    color:var(--text);
+  }
+  .btn-ghost:hover{ border-color:var(--machine); color:var(--machine); transform:translateY(-2px); }
+
+  /* ---------- Vitals HUD panel (signature element) ---------- */
+  .hud{
+    position:relative;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:26px 24px 22px;
+  }
+  .hud::before{
+    content:"LIVE FEED // SUBJECT-07";
+    position:absolute;
+    top:-11px; left:20px;
+    background:var(--void);
+    padding:0 8px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.16em;
+    color:var(--machine);
+  }
+  .hud-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .hud-row b{ color:var(--text); font-size:13px; }
+  .pulse-wrap{
+    height:74px;
+    margin:14px 0 18px;
+    overflow:hidden;
+  }
+  .pulse-wrap svg{ width:200%; height:100%; animation:scrollpulse 4.2s linear infinite; }
+  @keyframes scrollpulse{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
+
+  .hud-stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px 18px;
+    font-family:var(--mono);
+    font-size:12px;
+  }
+  .hud-stats div{
+    display:flex; justify-content:space-between;
+    border-bottom:1px dashed var(--line);
+    padding-bottom:6px;
+    color:var(--muted);
+  }
+  .hud-stats div b{ color:var(--machine); font-weight:500; }
+  .hud-dot{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--machine);
+    display:inline-block;
+    margin-right:7px;
+    box-shadow:0 0 8px var(--machine);
+    animation:blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+
+  /* ---------- Manifesto ---------- */
+  .manifesto{ padding:120px 0; border-top:1px solid var(--line); }
+  .manifesto-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:64px;
+    align-items:center;
+  }
+  .manifesto h2{
+    font-size:clamp(30px,4vw,42px);
+    margin:14px 0 20px;
+    line-height:1.15;
+  }
+  .manifesto p{ color:var(--muted); max-width:52ch; margin-bottom:16px; }
+  .manifesto p:last-of-type{ margin-bottom:0; }
+  .manifesto p b{ color:var(--text); font-weight:600; }
+
+  .vein-art{ width:100%; }
+  .vein-art path.trace{
+    stroke-dasharray:6 5;
+    animation:travel 14s linear infinite;
+  }
+  @keyframes travel{ to{ stroke-dashoffset:-220; } }
+
+  /* ---------- Augments ---------- */
+  .augments{ padding:120px 0; border-top:1px solid var(--line); }
+  .section-head{ max-width:640px; margin-bottom:56px; }
+  .section-head h2{ font-size:clamp(28px,3.6vw,38px); margin-top:14px; }
+  .card-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+  }
+  .card{
+    background:var(--void);
+    padding:32px 26px;
+    transition:background .25s ease;
+    position:relative;
+  }
+  .card:hover{ background:var(--panel); }
+  .card-index{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--copper);
+    letter-spacing:.1em;
+  }
+  .card h3{
+    font-size:19px;
+    margin:14px 0 10px;
+  }
+  .card p{ color:var(--muted); font-size:14.5px; }
+  .card .glow{
+    position:absolute; left:0; right:0; bottom:0; height:2px;
+    background:var(--machine);
+    transform:scaleX(0);
+    transform-origin:left;
+    transition:transform .3s ease;
+  }
+  .card:hover .glow{ transform:scaleX(1); }
+
+  /* ---------- Specs band ---------- */
+  .specs{
+    padding:70px 0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+  .specs-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    text-align:center;
+    gap:24px;
+  }
+  .specs-grid .num{
+    font-family:var(--display);
+    font-size:clamp(28px,4vw,44px);
+    color:var(--human);
+  }
+  .specs-grid .label{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-top:8px;
+  }
+
+  /* ---------- CTA ---------- */
+  .cta{ padding:130px 0; text-align:center; position:relative; }
+  .cta h2{ font-size:clamp(30px,5vw,50px); margin:14px auto 16px; max-width:20ch; }
+  .cta p{ color:var(--muted); max-width:50ch; margin:0 auto 34px; }
+  .cta-form{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    max-width:520px;
+    margin:0 auto;
+    flex-wrap:wrap;
+  }
+  .cta-form input{
+    flex:1;
+    min-width:220px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:15px 18px;
+    font-family:var(--body);
+    font-size:14.5px;
+    border-radius:2px;
+  }
+  .cta-form input:focus{ outline:2px solid var(--machine); outline-offset:2px; }
+  .cta-form button{
+    border:none;
+    cursor:pointer;
+  }
+  .cta-note{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:16px;
+  }
+
+  /* ---------- Footer ---------- */
+  footer{ border-top:1px solid var(--line); padding:44px 0; }
+  .foot-grid{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:18px;
+  }
+  .foot-links{ display:flex; gap:26px; font-family:var(--mono); font-size:12.5px; color:var(--muted); }
+  .foot-links a:hover{ color:var(--machine); }
+  .fine-print{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:22px; opacity:.7; }
+
+  /* ---------- Motion & accessibility ---------- */
+  a:focus-visible, button:focus-visible, input:focus-visible{
+    outline:2px solid var(--machine);
+    outline-offset:3px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 980px){
+    .hero-grid{ grid-template-columns:1fr; }
+    .hud{ order:-1; }
+    .manifesto-grid{ grid-template-columns:1fr; }
+    .card-grid{ grid-template-columns:repeat(2,1fr); }
+    .specs-grid{ grid-template-columns:repeat(2,1fr); row-gap:36px; }
+  }
+  @media (max-width: 640px){
+    .wrap{ padding:0 20px; }
+    nav{ padding:16px 20px; }
+    .nav-links{ display:none; }
+    .hero{ padding:140px 0 80px; }
+    .card-grid{ grid-template-columns:1fr; }
+    .foot-grid{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div id="reticle"></div>
+
+<header>
+  <nav>
+    <div class="logo">IRON<span>VEIN</span></div>
+    <div class="nav-links">
+      <a href="#manifesto">Manifesto</a>
+      <a href="#augments">Augments</a>
+      <a href="#specs">Specs</a>
+      <a href="#access">Access</a>
+    </div>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">IRONVEIN // GEN-7 AUGMENTATION</p>
+        <h1>Flesh was <span class="glitch" data-text="the beta version.">the beta version.</span></h1>
+        <p class="lede">IRONVEIN grafts machine precision onto human instinct — augmentation
+          engineered for people who refuse to stay soft. No metaphors. Actual wiring.</p>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="#access">Begin the Upgrade</a>
+          <a class="btn btn-ghost" href="#manifesto">View the Scan</a>
+        </div>
+      </div>
+
+      <!-- signature element: live vitals HUD -->
+      <div class="hud">
+        <div class="hud-row"><span><span class="hud-dot"></span>Cardiac core</span><b>2 / 2 active</b></div>
+        <div class="pulse-wrap">
+          <svg viewBox="0 0 600 100" preserveAspectRatio="none">
+            <path d="M0 50 L60 50 L80 20 L100 80 L120 10 L140 50 L200 50
+                     L260 50 L280 20 L300 80 L320 10 L340 50 L400 50
+                     L460 50 L480 20 L500 80 L520 10 L540 50 L600 50"
+                  fill="none" stroke="#00e5cc" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="hud-stats">
+          <div>Reflex latency <b>0.03ms</b></div>
+          <div>Core temp <b>41.8°C</b></div>
+          <div>Sensors online <b>128 / 128</b></div>
+          <div>Neural sync <b>99.4%</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MANIFESTO ============ -->
+  <section class="manifesto" id="manifesto">
+    <div class="wrap manifesto-grid">
+      <div>
+        <p class="eyebrow">SYSTEM MANIFESTO</p>
+        <h2>The body is a first draft.</h2>
+        <p>Every scar is a bug report. Every reflex you wish you had a half-second sooner is a
+          feature request the body never shipped. <b>IRONVEIN</b> doesn't replace what makes you
+          human — it patches the parts biology never got around to finishing.</p>
+        <p>We build at the seam where <b>blood meets circuitry</b>, where instinct still leads
+          and the machine just makes sure it arrives on time. Not a suit you wear. Not an app you
+          open. Something that runs under the skin, the way a heartbeat does.</p>
+      </div>
+      <div>
+        <svg class="vein-art" viewBox="0 0 420 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="210" cy="190" r="150" stroke="#232a38" stroke-width="1"/>
+          <circle cx="210" cy="190" r="105" stroke="#232a38" stroke-width="1"/>
+          <path class="trace" d="M60 190 C120 120, 160 260, 210 190 S 300 100, 360 190"
+                stroke="#ff3e6c" stroke-width="2"/>
+          <path class="trace" d="M210 40 C260 100, 140 140, 210 190 S 300 280, 210 340"
+                stroke="#00e5cc" stroke-width="2" style="animation-delay:-4s"/>
+          <circle cx="210" cy="190" r="8" fill="#e8a857"/>
+          <circle cx="60" cy="190" r="4" fill="#ff3e6c"/>
+          <circle cx="360" cy="190" r="4" fill="#ff3e6c"/>
+          <circle cx="210" cy="40" r="4" fill="#00e5cc"/>
+          <circle cx="210" cy="340" r="4" fill="#00e5cc"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AUGMENTS ============ -->
+  <section class="augments" id="augments">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">THE CATALOG</p>
+        <h2>Four ways to stop being just meat.</h2>
+      </div>
+    </div>
+    <div class="wrap" style="padding:0;">
+      <div class="card-grid">
+        <div class="card">
+          <span class="card-index">AUG.01</span>
+          <h3>Neural Mesh</h3>
+          <p>Thoughts move faster than nerves ever could. React before you've decided to.</p>
+          <span class="glow"></span>
+        </div>
+        <div class="card">
+          <span class="card-index">AUG.02</span>
+          <h3>Optic Array</h3>
+          <p>See in infrared, zoom to the horizon, and never blink at the wrong moment again.</p>
+          <span class="glow"></span>
+        </div>
+        <div class="card">
+          <span class="card-index">AUG.03</span>
+          <h3>Dermal Plating</h3>
+          <p>Skin that closes its own wounds and asks a blade to try that again.</p>
+          <span class="glow"></span>
+        </div>
+        <div class="card">
+          <span class="card-index">AUG.04</span>
+          <h3>Cardiac Core</h3>
+          <p>A second heart, tucked behind the first, for the days that need two.</p>
+          <span class="glow"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SPECS BAND ============ -->
+  <section class="specs" id="specs">
+    <div class="wrap specs-grid">
+      <div><div class="num">0.03ms</div><div class="label">Reflex latency</div></div>
+      <div><div class="num">128</div><div class="label">Onboard sensors</div></div>
+      <div><div class="num">42°C</div><div class="label">Optimal core temp</div></div>
+      <div><div class="num">&infin;</div><div class="label">Firmware updates</div></div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta" id="access">
+    <div class="wrap">
+      <p class="eyebrow">ACCESS WINDOW: OPEN</p>
+      <h2>Your upgrade window is open.</h2>
+      <p>Limited surgical slots per cycle. Reserve yours before the queue reboots.</p>
+      <form class="cta-form" onsubmit="return handleReserve(event)">
+        <input id="reserve-email" type="email" placeholder="you@wherever-you-still-are.com" required aria-label="Email address">
+        <button class="btn btn-primary" type="submit">Reserve My Slot</button>
+      </form>
+      <p class="cta-note" id="reserve-note">No spam. No small print in six-point font. Just a callback before your slot opens.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="logo" style="font-size:16px;">IRON<span>VEIN</span></div>
+      <div class="foot-links">
+        <a href="#manifesto">Manifesto</a>
+        <a href="#augments">Augments</a>
+        <a href="#specs">Specs</a>
+        <a href="#access">Access</a>
+      </div>
+    </div>
+    <p class="fine-print">© 2026 Ironvein Labs. All limbs reserved. Not affiliated with your current biology.</p>
+  </div>
+</footer>
+
+<script>
+  // Custom cursor: targeting reticle follows the pointer,
+  // widens over anything clickable.
+  var reticle = document.getElementById('reticle');
+  if (reticle && window.matchMedia('(hover: hover)').matches) {
+    document.addEventListener('mousemove', function (e) {
+      reticle.style.left = e.clientX + 'px';
+      reticle.style.top  = e.clientY + 'px';
+    });
+    document.querySelectorAll('a, button, input').forEach(function (el) {
+      el.addEventListener('mouseenter', function () { reticle.classList.add('active'); });
+      el.addEventListener('mouseleave', function () { reticle.classList.remove('active'); });
+    });
+  }
+
+  // Hero headline glitch, plays once on load.
+  var glitchTarget = document.querySelector('.glitch');
+  if (glitchTarget) {
+    var original = glitchTarget.textContent;
+    var scrambleChars = '01#/\\{}<>_-';
+    var frame = 0;
+    var totalFrames = 14;
+    var glitchTimer = setInterval(function () {
+      frame++;
+      if (frame >= totalFrames) {
+        glitchTarget.textContent = original;
+        clearInterval(glitchTimer);
+        return;
+      }
+      var out = '';
+      for (var i = 0; i < original.length; i++) {
+        var ch = original[i];
+        if (ch !== ' ' && Math.random() < 0.25 && frame < totalFrames - 3) {
+          out += scrambleChars[Math.floor(Math.random() * scrambleChars.length)];
+        } else {
+          out += ch;
+        }
+      }
+      glitchTarget.textContent = out;
+    }, 55);
+  }
+
+  // Reserve form: since there's no backend on this page yet,
+  // just confirm the click was received.
+  function handleReserve(e) {
+    e.preventDefault();
+    var note = document.getElementById('reserve-note');
+    var email = document.getElementById('reserve-email').value;
+    note.textContent = 'Slot requested for ' + email + '. Ironvein will reach out before the next cycle.';
+    note.style.color = 'var(--machine)';
+    return false;
+  }
+</script>
+
+</body>
+</html>
