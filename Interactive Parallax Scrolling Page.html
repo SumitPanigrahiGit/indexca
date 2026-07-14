@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE DIVE — an interactive parallax descent</title>
+<meta name="description" content="Scroll from sunlit water to the Mariana Trench. A parallax-scrolling dive with a live depth gauge.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* =========================================================
+     TOKENS
+     Each zone gets its own gradient — the palette itself tells
+     you how deep you are, no labels required.
+  ========================================================= */
+  :root{
+    --ink:      #04101c;
+    --paper:    #f3faf9;
+    --coral:    #ff8a65;
+    --gold:     #ffd166;
+    --glow:     #6ee7d8;
+
+    --display: 'Fraunces', serif;
+    --body:    'Inter', sans-serif;
+    --mono:    'JetBrains Mono', monospace;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    font-family:var(--body);
+    color:var(--paper);
+    background:var(--ink);
+    overflow-x:hidden;
+  }
+  a{ color:inherit; }
+  h1,h2{ font-family:var(--display); font-weight:700; }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 32px; position:relative; z-index:3; }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    opacity:.85;
+  }
+
+  /* =========================================================
+     DEPTH GAUGE — the signature element.
+     Fixed on the right edge, fills as you scroll, reports the
+     current depth in metres against the real Mariana Trench.
+  ========================================================= */
+  #gauge{
+    position:fixed;
+    right:22px;
+    top:50%;
+    transform:translateY(-50%);
+    height:46vh;
+    width:34px;
+    z-index:50;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    pointer-events:none;
+  }
+  #gauge .track{
+    position:relative;
+    width:2px;
+    flex:1;
+    background:rgba(255,255,255,.2);
+    border-radius:2px;
+  }
+  #gauge .track::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height:var(--fill, 0%);
+    background:var(--glow);
+    border-radius:2px;
+  }
+  #gauge .marker{
+    position:absolute;
+    left:50%;
+    top:var(--fill, 0%);
+    width:11px; height:11px;
+    border-radius:50%;
+    background:var(--glow);
+    box-shadow:0 0 12px var(--glow);
+    transform:translate(-50%,-50%);
+  }
+  #gauge .reading{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.05em;
+    text-align:center;
+    margin-top:12px;
+    color:var(--glow);
+  }
+  #gauge .reading small{ display:block; opacity:.6; font-size:9.5px; margin-top:2px; }
+  @media (max-width:760px){ #gauge{ right:12px; height:36vh; } }
+
+  /* =========================================================
+     NAV
+  ========================================================= */
+  header{
+    position:fixed; top:0; left:0; right:0;
+    z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 36px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    mix-blend-mode:difference;
+  }
+  header a{ opacity:.85; }
+  header a:hover{ opacity:1; }
+
+  /* =========================================================
+     SECTION SHELL
+     Every dive zone is a tall, relatively positioned block with
+     its own background. Layers inside are absolutely placed and
+     get pushed by JS based on how far the section has scrolled.
+  ========================================================= */
+  .zone{
+    position:relative;
+    min-height:100vh;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    padding:120px 0;
+  }
+  .layer{ position:absolute; will-change:transform; }
+  .content{ position:relative; z-index:5; }
+
+  /* ---- zone 1: the surface ---- */
+  #surface{ background:linear-gradient(180deg, #eafffb 0%, #9be8dc 55%, #46c9b8 100%); color:#053b34; }
+  #surface .eyebrow{ color:#0d6b5c; }
+  .sun{
+    top:8%; left:50%; width:220px; height:220px;
+    transform:translateX(-50%);
+    border-radius:50%;
+    background:radial-gradient(circle, #fff6d8 0%, #ffe28a 45%, rgba(255,226,138,0) 72%);
+  }
+  .cloud{ background:rgba(255,255,255,.75); border-radius:100px; filter:blur(1px); }
+  .gull{ width:34px; height:14px; opacity:.55; }
+  .boat{ bottom:6%; left:14%; width:120px; opacity:.5; }
+
+  /* ---- zone 2: the shallows ---- */
+  #shallows{ background:linear-gradient(180deg, #2fb8b0 0%, #1c8e9b 55%, #0f6b83 100%); }
+  .ray{
+    top:-10%;
+    width:140px; height:160%;
+    background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0));
+    transform:skewX(-14deg);
+  }
+  .coral{ bottom:-4%; }
+  .bubble{
+    border-radius:50%;
+    background:rgba(255,255,255,.35);
+  }
+  .fish{ opacity:.9; }
+
+  /* ---- zone 3: the twilight zone ---- */
+  #twilight{ background:linear-gradient(180deg, #0f5a7a 0%, #123a6e 55%, #131c52 100%); }
+  .jelly-dome{ border-radius:50% 50% 46% 46% / 60% 60% 40% 40%; opacity:.85; }
+  .jelly-tentacle{ width:2px; background:linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0)); }
+  .drift-dot{ border-radius:50%; }
+
+  /* ---- zone 4: the midnight zone ---- */
+  #midnight{ background:linear-gradient(180deg, #0a1440 0%, #060c2c 55%, #030614 100%); }
+  .glow-dot{ border-radius:50%; box-shadow:0 0 10px currentColor; }
+  .angler-body{ border-radius:50% 40% 55% 45% / 60% 55% 45% 40%; }
+  .angler-lure{ border-radius:50%; box-shadow:0 0 16px #ffe28a; }
+
+  /* ---- zone 5: the trench ---- */
+  #trench{ background:radial-gradient(ellipse 70% 60% at 50% 100%, #2a1030 0%, #05040c 60%, #020103 100%); text-align:center; justify-content:center; }
+  .vent{
+    bottom:-10%; left:50%; transform:translateX(-50%);
+    width:340px; height:220px; border-radius:50%;
+    background:radial-gradient(ellipse, rgba(255,138,101,.35), rgba(255,138,101,0) 70%);
+    filter:blur(6px);
+  }
+  .ember{ border-radius:50%; background:var(--coral); }
+
+  /* =========================================================
+     TYPE
+  ========================================================= */
+  h1{ font-size:clamp(40px, 7vw, 76px); line-height:1.02; margin:16px 0 18px; }
+  h2{ font-size:clamp(30px, 4.4vw, 46px); line-height:1.08; margin:14px 0 16px; }
+  .zone p.lede{ font-size:17px; max-width:48ch; opacity:.9; }
+  #shallows p.lede, #twilight p.lede, #midnight p.lede{ opacity:.85; }
+
+  .scroll-hint{
+    margin-top:56px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    display:flex; align-items:center; gap:10px;
+  }
+  .scroll-hint .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; animation:dip 1.6s ease-in-out infinite; }
+  @keyframes dip{ 0%,100%{ transform:translateY(0); opacity:.4; } 50%{ transform:translateY(6px); opacity:1; } }
+
+  .stat-line{
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:.05em;
+    opacity:.8;
+    margin-top:22px;
+  }
+  .stat-line b{ color:var(--glow); }
+
+  .btn{
+    display:inline-block;
+    margin-top:30px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:14px 26px;
+    border:1px solid rgba(255,255,255,.35);
+    border-radius:100px;
+    transition:background .2s ease, transform .2s ease;
+  }
+  .btn:hover{ background:rgba(255,255,255,.1); transform:translateY(-2px); }
+
+  footer{
+    background:#020103;
+    text-align:center;
+    padding:50px 24px 70px;
+    font-family:var(--mono);
+    font-size:11.5px;
+    opacity:.6;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    .layer{ transform:none !important; }
+    .scroll-hint .dot{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="#surface">The Dive</a>
+  <a href="#trench">Skip to the bottom ↓</a>
+</header>
+
+<div id="gauge">
+  <div class="track"><div class="marker"></div></div>
+  <div class="reading" id="depth-reading">0 m<small>surface</small></div>
+</div>
+
+<main>
+
+  <!-- ================= ZONE 1 — SURFACE ================= -->
+  <section class="zone" id="surface">
+    <div class="layer sun" data-speed="0.12"></div>
+    <div class="layer cloud" data-speed="0.18" style="top:14%; left:8%;  width:160px; height:46px;"></div>
+    <div class="layer cloud" data-speed="0.24" style="top:22%; left:62%; width:210px; height:56px;"></div>
+    <div class="layer cloud" data-speed="0.15" style="top:6%;  left:40%; width:120px; height:36px;"></div>
+
+    <svg class="layer gull" data-speed="0.3" style="top:18%; left:26%;" viewBox="0 0 34 14"><path d="M0 10 Q8 0 17 10 Q26 0 34 10" stroke="#053b34" stroke-width="2" fill="none"/></svg>
+    <svg class="layer gull" data-speed="0.36" style="top:12%; left:70%;" viewBox="0 0 34 14"><path d="M0 10 Q8 0 17 10 Q26 0 34 10" stroke="#053b34" stroke-width="2" fill="none"/></svg>
+
+    <svg class="layer boat" data-speed="0.2" viewBox="0 0 120 50">
+      <path d="M10 30 L110 30 L95 46 L25 46 Z" fill="#0d6b5c"/>
+      <rect x="55" y="4" width="4" height="28" fill="#0d6b5c"/>
+      <path d="M59 6 L59 26 L86 26 Z" fill="#0d6b5c"/>
+    </svg>
+
+    <div class="wrap content">
+      <p class="eyebrow">Depth 0m — the surface</p>
+      <h1>Scroll like<br>you mean it.</h1>
+      <p class="lede">Everything above the waterline is calm and bright. That's the last calm
+        thing about this page — every section from here down gets a little darker, a little
+        stranger, and a little deeper.</p>
+      <div class="scroll-hint"><span class="dot"></span> Start scrolling to dive</div>
+    </div>
+  </section>
+
+  <!-- ================= ZONE 2 — SHALLOWS ================= -->
+  <section class="zone" id="shallows">
+    <div class="layer ray" data-speed="0.1" style="left:10%;"></div>
+    <div class="layer ray" data-speed="0.14" style="left:55%;"></div>
+    <div class="layer ray" data-speed="0.08" style="left:78%;"></div>
+
+    <svg class="layer coral" data-speed="0.16" style="left:0; width:100%; height:220px;" viewBox="0 0 800 220" preserveAspectRatio="none">
+      <path d="M0 220 L0 140 Q40 100 80 140 Q110 90 150 140 Q190 80 230 140 Q270 110 310 140 L800 140 L800 220 Z" fill="#0a5163" opacity="0.8"/>
+    </svg>
+
+    <svg class="layer fish" data-speed="0.42" style="top:28%; left:18%; width:60px;" viewBox="0 0 60 30"><path d="M2 15 Q20 0 45 15 Q20 30 2 15 Z M45 15 L58 6 L58 24 Z" fill="#ffd166"/></svg>
+    <svg class="layer fish" data-speed="0.5"  style="top:44%; left:64%; width:50px;" viewBox="0 0 60 30"><path d="M2 15 Q20 0 45 15 Q20 30 2 15 Z M45 15 L58 6 L58 24 Z" fill="#ff8a65" transform="scale(-1,1) translate(-60,0)"/></svg>
+    <svg class="layer fish" data-speed="0.34" style="top:60%; left:36%; width:42px;" viewBox="0 0 60 30"><path d="M2 15 Q20 0 45 15 Q20 30 2 15 Z M45 15 L58 6 L58 24 Z" fill="#fff3bf"/></svg>
+
+    <div class="layer bubble" data-speed="-0.3" style="bottom:10%; left:22%; width:10px; height:10px;"></div>
+    <div class="layer bubble" data-speed="-0.42" style="bottom:20%; left:70%; width:16px; height:16px;"></div>
+    <div class="layer bubble" data-speed="-0.24" style="bottom:6%;  left:48%; width:7px;  height:7px;"></div>
+
+    <div class="wrap content">
+      <p class="eyebrow">Depth ~20m — the shallows</p>
+      <h2>Still bright enough to see colour.</h2>
+      <p class="lede">Sunlight still reaches this far — barely. Reef fish flash gold and coral
+        under it, and every scroll here still feels like summer. That ends soon.</p>
+    </div>
+  </section>
+
+  <!-- ================= ZONE 3 — TWILIGHT ================= -->
+  <section class="zone" id="twilight">
+    <div class="layer jelly-dome" data-speed="0.22" style="top:16%; left:14%; width:80px; height:60px; background:rgba(180,220,255,.5);"></div>
+    <div class="layer jelly-tentacle" data-speed="0.22" style="top:26%; left:24%; height:70px;"></div>
+    <div class="layer jelly-tentacle" data-speed="0.22" style="top:26%; left:34%; height:90px;"></div>
+    <div class="layer jelly-tentacle" data-speed="0.22" style="top:26%; left:44%; height:60px;"></div>
+
+    <div class="layer jelly-dome" data-speed="0.3" style="top:52%; left:70%; width:56px; height:42px; background:rgba(255,209,102,.4);"></div>
+    <div class="layer jelly-tentacle" data-speed="0.3" style="top:60%; left:78%; height:50px;"></div>
+    <div class="layer jelly-tentacle" data-speed="0.3" style="top:60%; left:84%; height:66px;"></div>
+
+    <div class="layer drift-dot" data-speed="-0.2" style="top:20%; left:60%; width:5px; height:5px; background:#6ee7d8;"></div>
+    <div class="layer drift-dot" data-speed="-0.26" style="top:70%; left:20%; width:4px; height:4px; background:#6ee7d8;"></div>
+    <div class="layer drift-dot" data-speed="-0.34" style="top:40%; left:44%; width:6px; height:6px; background:#6ee7d8;"></div>
+
+    <div class="wrap content">
+      <p class="eyebrow">Depth ~400m — the twilight zone</p>
+      <h2>The light gives up here.</h2>
+      <p class="lede">Past this point, the sun's contribution is basically theoretical. Anything
+        glowing from here on is making its own light — the jellyfish already are.</p>
+    </div>
+  </section>
+
+  <!-- ================= ZONE 4 — MIDNIGHT ================= -->
+  <section class="zone" id="midnight">
+    <div class="layer glow-dot" data-speed="0.16" style="top:14%; left:20%; width:4px; height:4px; color:#6ee7d8; background:#6ee7d8;"></div>
+    <div class="layer glow-dot" data-speed="0.22" style="top:30%; left:70%; width:3px; height:3px; color:#a7f3d0; background:#a7f3d0;"></div>
+    <div class="layer glow-dot" data-speed="0.28" style="top:60%; left:14%; width:5px; height:5px; color:#67e8f9; background:#67e8f9;"></div>
+    <div class="layer glow-dot" data-speed="0.19" style="top:74%; left:80%; width:3px; height:3px; color:#6ee7d8; background:#6ee7d8;"></div>
+    <div class="layer glow-dot" data-speed="0.24" style="top:46%; left:50%; width:4px; height:4px; color:#a7f3d0; background:#a7f3d0;"></div>
+
+    <div class="layer angler-body" data-speed="0.32" style="top:44%; left:62%; width:90px; height:52px; background:#101636;"></div>
+    <div class="layer angler-lure" data-speed="0.32" style="top:36%; left:66%; width:8px; height:8px; background:#ffe28a;"></div>
+
+    <div class="wrap content">
+      <p class="eyebrow">Depth ~1,800m — the midnight zone</p>
+      <h2>No sunlight has ever touched this water.</h2>
+      <p class="lede">Everything that lives here brought its own light or learned to live
+        without any. That single gold dot to the right didn't come from above — it's bait.</p>
+    </div>
+  </section>
+
+  <!-- ================= ZONE 5 — THE TRENCH ================= -->
+  <section class="zone" id="trench">
+    <div class="layer vent" data-speed="0.1"></div>
+    <div class="layer ember" data-speed="0.2" style="bottom:14%; left:44%; width:4px;  height:4px;"></div>
+    <div class="layer ember" data-speed="0.26" style="bottom:20%; left:56%; width:3px;  height:3px;"></div>
+    <div class="layer ember" data-speed="0.16" style="bottom:10%; left:50%; width:5px;  height:5px;"></div>
+
+    <div class="wrap content">
+      <p class="eyebrow">Depth 10,935m — Challenger Deep</p>
+      <h2>You've reached the bottom of the ocean.</h2>
+      <p class="lede">Deeper than Everest is tall, if you turned it upside down and dropped it
+        in. There's nothing further to scroll — this is where the water stops.</p>
+      <p class="stat-line">Pressure down here: roughly <b>1,086 times</b> what you're feeling right now.</p>
+      <a class="btn" href="#surface">Back to the surface ↑</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built for the scroll, not just for the click. Numbers borrowed from NOAA's ocean-depth data.
+</footer>
+
+<script>
+/* =============================================================
+   Parallax engine.
+   Every element with [data-speed] gets nudged based on how far
+   its OWN section has scrolled through the viewport — not the
+   whole page — so the effect stays consistent no matter how
+   long the page is.
+
+   speed > 0  → drifts opposite to scroll, reads as "far away"
+   speed < 0  → drifts faster than scroll, reads as "close / rising"
+============================================================= */
+var zones = document.querySelectorAll('.zone');
+
+function updateParallax() {
+  zones.forEach(function (zone) {
+    var rect = zone.getBoundingClientRect();
+    var layers = zone.querySelectorAll('[data-speed]');
+    layers.forEach(function (layer) {
+      var speed = parseFloat(layer.dataset.speed);
+      var offset = rect.top * speed;
+      layer.style.transform = 'translateY(' + offset + 'px)';
+    });
+  });
+  requestAnimationFrame(updateParallax);
+}
+requestAnimationFrame(updateParallax);
+
+/* =============================================================
+   Depth gauge.
+   Maps total scroll progress (0–1) onto real Challenger Deep
+   metres, and moves the marker down its little track.
+============================================================= */
+var MAX_DEPTH = 10935; // Challenger Deep, Mariana Trench, in metres
+var gauge = document.getElementById('gauge');
+var reading = document.getElementById('depth-reading');
+var zoneNames = [
+  { limit: 0.02, label: 'surface' },
+  { limit: 0.28, label: 'the shallows' },
+  { limit: 0.5,  label: 'the twilight zone' },
+  { limit: 0.74, label: 'the midnight zone' },
+  { limit: 1.01, label: 'the trench' }
+];
+
+function currentZoneName(progress) {
+  for (var i = 0; i < zoneNames.length; i++) {
+    if (progress <= zoneNames[i].limit) return zoneNames[i].label;
+  }
+  return 'the trench';
+}
+
+function updateGauge() {
+  var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  var progress = maxScroll > 0 ? Math.min(Math.max(window.scrollY / maxScroll, 0), 1) : 0;
+  var depth = Math.round(progress * MAX_DEPTH);
+
+  gauge.style.setProperty('--fill', (progress * 100) + '%');
+  reading.innerHTML = depth.toLocaleString() + ' m<small>' + currentZoneName(progress) + '</small>';
+}
+window.addEventListener('scroll', updateGauge);
+window.addEventListener('resize', updateGauge);
+updateGauge();
+</script>
+
+</body>
+</html>
